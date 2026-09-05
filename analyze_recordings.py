@@ -364,6 +364,7 @@ axes[2].set_ylabel('Velocity (m/s)')
 axes[2].set_title('Calculated Velocity from GPS Positions')
 axes[2].legend()
 axes[2].grid(True, alpha=0.3)
+axes[2].set_ylim(1, 3)
 
 # Plot 4: Filtered calculated velocities
 axes[3].plot(df_garmin_aligned['seconds'], df_garmin_aligned['speed_calculated_filtered'], 
@@ -373,6 +374,7 @@ axes[3].plot(df_sensor_aligned['seconds'], df_sensor_aligned['speed_calculated_f
 axes[3].set_xlabel('Time (seconds since start)')
 axes[3].set_ylabel('Velocity (m/s)')
 axes[3].set_title('Filtered Calculated Velocity')
+axes[3].set_ylim(1, 3)
 axes[3].legend()
 axes[3].grid(True, alpha=0.3)
 
