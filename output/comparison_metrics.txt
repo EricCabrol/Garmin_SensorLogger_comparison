@@ -1,0 +1,15 @@
+COMPARATIVE METRICS
+============================================================
+Analysis Date: 2026-09-05 12:21:30.488238
+Garmin FIT File: data/13603885354_ACTIVITY.fit
+SensorLogger CSV: data/Location.csv
+
+Garmin Total Distance M: 6658.0924
+Sensor Total Distance M: 6273.3929
+Distance Difference M: 384.6995
+Distance Difference Pct: 5.7779
+Velocity Correlation: 0.2924
+Velocity Rmse: 0.4261
+Velocity Mean Difference: 0.2474
+Avg Path Deviation M: 16.5798
+Max Path Deviation M: 70.0705
