@@ -15,12 +15,17 @@ Usage:
     python analyze_recordings.py
     # or with uv:
     uv run python analyze_recordings.py
+
+TIMEZONE NOTES:
+- SensorLogger CSV timestamps (nanoseconds) are Unix epoch -> always UTC
+- Garmin FIT timestamps are also UTC
+- We force all timestamps to UTC to avoid local timezone interpretation issues
 """
 
 import pandas as pd
 import numpy as np
 import fitdecode
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import matplotlib.pyplot as plt
 import folium
 from scipy.signal import savgol_filter
@@ -53,9 +58,14 @@ def semicircles_to_degrees(semicircles):
 
 
 def nanoseconds_to_datetime(ns):
-    """Convert nanoseconds timestamp to datetime."""
-    # SensorLogger uses nanoseconds since epoch
-    return datetime.fromtimestamp(ns / 1e9)
+    """Convert nanoseconds timestamp to datetime in UTC.
+    
+    SensorLogger timestamps are in nanoseconds since Unix epoch.
+    Unix epoch is ALWAYS UTC, regardless of the device's recording timezone.
+    We explicitly set tz=timezone.utc to prevent local timezone interpretation.
+    """
+    # SensorLogger uses nanoseconds since Unix epoch (UTC) - force UTC
+    return datetime.fromtimestamp(ns / 1e9, tz=timezone.utc)
 
 
 def haversine_distance(lat1, lon1, lat2, lon2):
@@ -133,7 +143,7 @@ def run_analysis(fit_file=FIT_FILE, location_csv=LOCATION_CSV, output_dir=OUTPUT
 
     print("\nProcessing SensorLogger data...")
 
-    # Convert nanoseconds to datetime
+    # Convert nanoseconds to datetime - FORCE UTC
     df_sensor['time_dt'] = df_sensor['time'].apply(nanoseconds_to_datetime)
 
     # Rename columns for consistency
@@ -172,9 +182,14 @@ def run_analysis(fit_file=FIT_FILE, location_csv=LOCATION_CSV, output_dir=OUTPUT
     df_garmin['lat'] = semicircles_to_degrees(df_garmin['position_lat'])
     df_garmin['lon'] = semicircles_to_degrees(df_garmin['position_long'])
 
-    # Convert timestamp to datetime (it's already a datetime object from fitdecode)
-    # Make timezone naive for comparison with SensorLogger
-    df_garmin['time_dt'] = pd.to_datetime(df_garmin['timestamp']).dt.tz_localize(None)
+    # Convert timestamp to datetime - ensure it's timezone-aware UTC
+    df_garmin['time_dt'] = pd.to_datetime(df_garmin['timestamp'])
+    # If timestamp has no timezone, assume UTC
+    if df_garmin['time_dt'].dt.tz is None:
+        df_garmin['time_dt'] = df_garmin['time_dt'].dt.tz_localize(timezone.utc)
+    else:
+        # Convert to UTC if it has a different timezone
+        df_garmin['time_dt'] = df_garmin['time_dt'].dt.tz_convert(timezone.utc)
 
     # Add device identifier
     df_garmin['device'] = 'Garmin Forerunner 735 XT'
@@ -213,14 +228,14 @@ def run_analysis(fit_file=FIT_FILE, location_csv=LOCATION_CSV, output_dir=OUTPUT
     sensor_start = df_sensor['time_dt'].min()
     garmin_start = df_garmin['time_dt'].min()
 
-    print(f"  SensorLogger start: {sensor_start}")
-    print(f"  Garmin start: {garmin_start}")
+    print(f"  SensorLogger start: {sensor_start} (UTC)")
+    print(f"  Garmin start: {garmin_start} (UTC)")
 
     # The Garmin starts later, so we need to find overlapping period
     max_start = max(sensor_start, garmin_start)
     min_end = min(df_sensor['time_dt'].max(), df_garmin['time_dt'].max())
 
-    print(f"  Overlapping period: {max_start} to {min_end}")
+    print(f"  Overlapping period: {max_start} to {min_end} (UTC)")
 
     # Filter both datasets to overlapping period
     df_sensor_aligned = df_sensor[(df_sensor['time_dt'] >= max_start) & (df_sensor['time_dt'] <= min_end)].copy()
@@ -549,7 +564,7 @@ def run_analysis(fit_file=FIT_FILE, location_csv=LOCATION_CSV, output_dir=OUTPUT
     with open(metrics_file, 'w') as f:
         f.write("COMPARATIVE METRICS\n")
         f.write("="*60 + "\n")
-        f.write(f"Analysis Date: {datetime.now()}\n")
+        f.write(f"Analysis Date: {datetime.now(timezone.utc)}\n")
         f.write(f"Garmin FIT File: {fit_file}\n")
         f.write(f"SensorLogger CSV: {location_csv}\n")
         f.write("\n")
