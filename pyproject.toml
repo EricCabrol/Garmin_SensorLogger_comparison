@@ -1,0 +1,26 @@
+[project]
+name = "garmin-sensorlogger-comparison"
+version = "0.1.0"
+description = "Compare GPS recordings from Garmin Forerunner 735 XT and SensorLogger (Pixel)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "fitdecode>=0.10",
+    "matplotlib>=3.7",
+    "folium>=0.14",
+    "scipy>=1.10",
+]
+
+[project.scripts]
+analyze = "analyze_recordings:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "hatchling",
+]
